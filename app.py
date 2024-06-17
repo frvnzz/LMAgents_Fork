@@ -55,14 +55,7 @@ class LMStudioAgent:
         self.history.append(new_message)
         
         # Save the final message to a CSV file
-        # try to save the message to a csv file, in case it fails, it will not break the code
-        try:
-            self.save_message_to_csv(new_message["content"])
-        except:
-            # if saving still fails, print an error message
-            print("Error saving message to CSV")
-            # skip the line and continue
-            pass
+        self.save_message_to_csv(new_message["content"])
         
         return new_message["content"]
 
@@ -79,7 +72,7 @@ class LMStudioAgent:
         return context
 
     def save_message_to_csv(self, message):
-        with open('agent_responses.csv', mode='a', encoding="utf-8", newline='') as file:
+        with open('agent_responses.csv', mode='a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow([self.name, message])
 
@@ -99,7 +92,7 @@ def load_agents_from_config(config_file):
         agents.append(agent)
     return agents
 
-agents = load_agents_from_config('agents_config.json')
+agents = load_agents_from_config('../../../../../PycharmProjects/LMAgents_Fork/agents_config.json')
 
 @app.route('/')
 def index():
@@ -119,7 +112,7 @@ def handle_start_conversation(data):
 def run_conversation(agents, initial_message, num_turns=15):
     message = initial_message
     last_agent = None
-    
+
     for _ in range(num_turns):
         available_agents = [agent for agent in agents if agent != last_agent]
         agent = random.choice(available_agents)

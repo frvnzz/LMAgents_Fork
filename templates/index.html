@@ -1,55 +1,252 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Agent Chat</title>
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
     <style>
-        .message {
-            margin-bottom: 10px;
-        }
-        #chat {
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #ccc;
-            padding: 10px;
-        }
+
     </style>
 </head>
+
 <body>
-    <h1>Chat with Agents</h1>
+    <h1>Chat</h1>
     <div id="chat"></div>
-    <input type="text" id="topic_input" placeholder="Enter a topic..." autocomplete="off"/>
+    <input type="text" id="topic_input" placeholder="Enter a topic..." autocomplete="off" />
     <button onclick="startConversation()">Start Conversation</button>
+    <button onclick="shufflePrompt()">Random Prompt</button>
+    <button class="stop-button" onclick="stopGenerating()">Stop Generating</button>
 
     <script>
         var socket = io.connect('http://127.0.0.1:5000');
         var currentMessageContainer = null;
         var currentRole = null;
 
-        socket.on('new_message', function(msg) {
+        var prompts = [
+            "What's your favorite way to spend a weekend?",
+            "How do you think technology will change in the next 10 years?",
+            "What is the most interesting book you've ever read?",
+            "If you could travel anywhere in the world, where would you go?",
+            "How do you define success?",
+            "What's the most memorable meal you've ever had?",
+            "What's the best piece of advice you've ever received?",
+            "What hobbies do you enjoy in your free time?",
+            "If you could have any superpower, what would it be?",
+            "What's your favorite movie and why?",
+            "How do you handle stress?",
+            "What's the most important lesson you've learned in life?",
+            "Do you prefer working alone or in a team?",
+            "What motivates you to get up in the morning?",
+            "How do you think artificial intelligence will impact our future?",
+            "What's the best vacation you've ever had?",
+            "If you could meet any historical figure, who would it be?",
+            "What is one skill you wish you could master instantly?",
+            "How do you stay productive during the day?",
+            "What's your favorite way to relax?",
+            "What was your favorite subject in school?",
+            "How do you approach problem-solving?",
+            "If you could live in any time period, when would it be?",
+            "What's the most challenging project you've worked on?",
+            "How do you stay informed about current events?",
+            "What's your favorite genre of music?",
+            "How do you balance work and personal life?",
+            "What's the best compliment you've ever received?",
+            "What's your favorite childhood memory?",
+            "How do you set and achieve your goals?",
+            "What's the most important quality in a friend?",
+            "How do you deal with failure?",
+            "What's your favorite holiday and why?",
+            "How do you keep yourself motivated?",
+            "What's your favorite sport or physical activity?",
+            "How do you handle difficult conversations?",
+            "What's the most interesting place you've visited?",
+            "How do you manage your time effectively?",
+            "What's your favorite thing about your job?",
+            "How do you maintain a healthy work-life balance?",
+            "What's your favorite quote and why?",
+            "How do you approach learning new things?",
+            "What's the most important trait in a leader?",
+            "How do you unwind after a long day?",
+            "What's your favorite season and why?",
+            "How do you stay organized?",
+            "What's your favorite type of food?",
+            "How do you build and maintain relationships?",
+            "What's the best gift you've ever received?",
+            "How do you stay positive in challenging situations?",
+            "What's your favorite TV show?",
+            "How do you handle criticism?",
+            "What's the most fun you've ever had at work?",
+            "How do you prioritize tasks?",
+            "What's your favorite way to exercise?",
+            "How do you celebrate achievements?",
+            "What's your dream job?",
+            "How do you stay creative?",
+            "What's the most inspiring thing you've seen recently?",
+            "How do you approach change?",
+            "What's your favorite animal and why?",
+            "How do you keep yourself focused?",
+            "What's the best decision you've ever made?",
+            "How do you handle unexpected situations?",
+            "What's your favorite app or tool for productivity?",
+            "How do you stay connected with friends and family?",
+            "What's your favorite place to relax?",
+            "How do you keep learning and growing?",
+            "What's the most interesting fact you know?",
+            "How do you support others in achieving their goals?",
+            "What's your favorite thing to do on a rainy day?",
+            "How do you stay calm under pressure?",
+            "What's the most exciting project you're working on?",
+            "How do you practice self-care?",
+            "What's your favorite board game or card game?",
+            "How do you keep your skills up to date?",
+            "What's the most adventurous thing you've done?",
+            "How do you handle multitasking?",
+            "What's your favorite memory from school?",
+            "How do you stay enthusiastic about your work?",
+            "What's your favorite way to give back to the community?",
+            "How do you handle disagreements?",
+            "What's the best part of your day?",
+            "How do you keep yourself disciplined?",
+            "What's your favorite outdoor activity?",
+            "How do you stay inspired?",
+            "What's the most important value you live by?",
+            "How do you manage your finances?",
+            "What's your favorite way to spend time with family?",
+            "How do you approach networking?",
+            "What's your favorite thing about learning new things?",
+            "How do you handle being outside your comfort zone?",
+            "What's the best advice you can give to someone?",
+            "How do you keep your environment tidy?",
+            "What's your favorite thing about your favorite hobby?",
+            "How do you plan for the future?",
+            "What's your favorite way to spend a day off?",
+            "How do you manage stress and anxiety?",
+            "What's your favorite thing about your community?",
+            "How do you stay true to yourself?",
+            "If animals could talk, which one would be the rudest?",
+            "What's the weirdest thing you've ever eaten?",
+            "If you were a vegetable, what vegetable would you be and why?",
+            "What's the most embarrassing thing you've done in public?",
+            "If you could only communicate by singing, what song would you sing most often?",
+            "What's the most ridiculous fact you know?",
+            "If you could have an unlimited supply of one thing for the rest of your life, what would it be?",
+            "What's the funniest joke you know by heart?",
+            "If you were invisible for a day, what would you do?",
+            "What's the silliest fear you have?",
+            "If you had to be handcuffed to one person for a month, who would it be?",
+            "What's the most absurd thing you've been tricked into believing?",
+            "If you could create a holiday, what would it be called and how would it be celebrated?",
+            "What's the most useless talent you have?",
+            "If you could switch lives with any fictional character, who would it be?",
+            "What's the weirdest dream you've ever had?",
+            "If you could only eat one food for the rest of your life, what would it be?",
+            "What's your best impression of a famous person?",
+            "If you were a superhero, what would be your ridiculous but very specific power?",
+            "What's the strangest habit you have?",
+            "If you could rename yourself, what name would you choose?",
+            "What's the funniest thing that's happened to you at work?",
+            "If you had to wear a warning label, what would yours say?",
+            "What's the weirdest thing you do when you're alone?",
+            "If you could be a fly on the wall, who would you want to listen in on?",
+            "What's the most unusual job you can think of?",
+            "If you could be any inanimate object, what would you be?",
+            "What's the funniest prank you've ever pulled?",
+            "If you could instantly become an expert in something, what would it be?",
+            "What's the most ridiculous outfit you've ever worn?",
+            "If you had to eat a crayon, what color would you choose?",
+            "What's the most awkward situation you've ever been in?",
+            "If you could only speak in movie quotes, which movie would you choose?",
+            "What's the silliest argument you've ever had?",
+            "If you could have any animal as a pet, no matter how bizarre, what would it be?",
+            "What's the most out-of-character thing you've ever done?",
+            "If you could trade places with your pet for a day, what would you do?",
+            "What's the weirdest nickname you've ever been given?",
+            "If you had a time machine, what era would you visit just for the fashion?",
+            "What's the funniest thing you've heard a child say?",
+            "If you could be the opposite gender for a day, what's the first thing you'd do?",
+            "What's the weirdest thing you've seen in someone else's home?",
+            "If you could combine any two animals to make the ultimate pet, which ones would you choose?",
+            "What's the funniest text message you've ever received?",
+            "If you were a ghost, how would you haunt people?",
+            "What's the silliest thing you've done to impress someone?",
+            "If you could be any character from a cartoon, who would you be?",
+            "What's the most bizarre compliment you've ever received?",
+            "If you had to give a Ted Talk on something you're not an expert in, what would it be?",
+            "What's the strangest superstition you've ever heard?",
+            "If you could live in any TV show, which one would you pick?",
+            "What's the most ridiculous rule you have to follow?",
+            "If you could make any mythical creature real, which one would you choose?",
+            "What's the funniest thing that happened to you recently?",
+            "If you could replace all the grass in the world with something else, what would it be?"
+        ];
+
+        socket.on('new_message', function (msg) {
             var chat = document.getElementById('chat');
 
             // Check if the role has changed or if there is no current message container
             if (currentRole !== msg.role || !currentMessageContainer) {
                 // Create a new message container for each new message
                 currentMessageContainer = document.createElement('div');
-                currentMessageContainer.className = 'message';
+                currentMessageContainer.className = 'message speech-bubble';
                 chat.appendChild(currentMessageContainer);
                 currentRole = msg.role;
             }
 
             // Update the current message container with the new content
-            currentMessageContainer.textContent = `${msg.role}: ${msg.content}`;
+            currentMessageContainer.innerHTML = `<b>${msg.role}:</b><br> ${msg.content}`;
             chat.scrollTop = chat.scrollHeight;  // Scroll to the bottom
         });
 
         function startConversation() {
             var input = document.getElementById('topic_input');
             var topic = input.value;
-            socket.emit('start_conversation', {topic: topic});
+            socket.emit('start_conversation', { topic: topic });
             input.value = '';
+
+            var resumeButton = document.getElementById('resume_button');
+            if (resumeButton) {
+                resumeButton.remove();
+            }
+        }
+
+        var input = document.getElementById('topic_input');
+        input.addEventListener('keypress', function (event) {
+            if (event.key === 'Enter') {
+                startConversation();
+            }
+        });
+
+        function shufflePrompt() {
+            var input = document.getElementById('topic_input');
+            var randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+            input.value = randomPrompt;
+            startConversation();
+        }
+
+        function stopGenerating() {
+            socket.disconnect();
+
+            var existingButton = document.getElementById('resume_button');
+            if (!existingButton) {
+                var resumeButton = document.createElement('button');
+                resumeButton.id = 'resume_button';
+                resumeButton.innerText = 'Resume Generating';
+                resumeButton.onclick = resumeGenerating;
+                resumeButton.className = 'resume-button';
+                document.body.appendChild(resumeButton);
+            }
+        }
+
+        function resumeGenerating() {
+            socket.connect();
+            var resumeButton = document.getElementById('resume_button');
+            if (resumeButton) {
+                resumeButton.remove();
+            }
         }
     </script>
 </body>
+
 </html>
